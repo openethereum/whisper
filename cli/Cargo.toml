@@ -6,14 +6,16 @@ authors = ["Parity Technologies <admin@parity.io>"]
 license = "GPL-3.0"
 
 [dependencies]
+chrono = { version = "0.4.6", features = ["serde"] }
 docopt = "1.0"
 env_logger = "0.5"
 ethcore-network = { git = "https://github.com/paritytech/parity-ethereum.git" }
 ethcore-network-devp2p = { git = "https://github.com/paritytech/parity-ethereum.git" }
+fern = { version = "0.5", features = ["colored"] }
 jsonrpc-core = "12.0.0"
 jsonrpc-http-server = "12.0.0"
 jsonrpc-pubsub = "12.0.0"
-log = "0.4"
+log = { version = "0.4", features = ["std", "serde", "max_level_trace", "release_max_level_info"] }
 panic_hook = { git = "https://github.com/paritytech/parity-ethereum.git" }
 parity-whisper = { path = "../" }
 serde = "1.0"
