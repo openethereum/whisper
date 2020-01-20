@@ -5,7 +5,7 @@ version = "0.1.0"
 authors = ["Parity Technologies <admin@parity.io>"]
 
 [dependencies]
-bitflags = "0.9"
+bitflags = "1.2"
 byteorder = "1.0.0"
 ethereum-types = "0.6.0"
 ethcore-network = { git = "https://github.com/paritytech/parity-ethereum.git" }
