@@ -461,7 +461,6 @@ impl Message {
 
 #[cfg(test)]
 mod tests {
-	use ethereum_types::H256;
 	use super::*;
 	use std::time::{self, Duration, SystemTime};
 	use rlp::Rlp;
