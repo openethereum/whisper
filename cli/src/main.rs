@@ -138,7 +138,6 @@ impl RpcFactory {
 
 #[derive(Debug)]
 enum Error {
-	Docopt(docopt::Error),
 	Io(io::Error),
 	JsonRpc(jsonrpc_core::Error),
 	Network(net::Error),
@@ -156,12 +155,6 @@ impl From<std::net::AddrParseError> for Error {
 impl From<net::Error> for Error {
 	fn from(err: net::Error) -> Self {
 		Error::Network(err)
-	}
-}
-
-impl From<docopt::Error> for Error {
-	fn from(err: docopt::Error) -> Self {
-		Error::Docopt(err)
 	}
 }
 
@@ -193,7 +186,6 @@ impl fmt::Display for Error {
 	fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
 		match *self {
 			Error::SockAddr(ref e) => write!(f, "{}", e),
-			Error::Docopt(ref e) => write!(f, "{}", e),
 			Error::Io(ref e) => write!(f, "{}", e),
 			Error::JsonRpc(ref e) => write!(f, "{:?}", e),
 			Error::Network(ref e) => write!(f, "{}", e),
@@ -218,7 +210,6 @@ fn main() {
 			println!("whisper-cli terminated");
 			process::exit(1);
 		},
-		Err(Error::Docopt(ref e)) => e.exit(),
 		Err(err) => {
 			println!("{}", err);
 			process::exit(1);
