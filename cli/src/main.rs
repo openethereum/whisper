@@ -206,7 +206,14 @@ impl fmt::Display for Error {
 fn main() {
 	panic_hook::set_abort();
 
-	match execute(env::args()) {
+	let args = match parse_args(env::args()) {
+		Ok(args) => args,
+		Err(e) => e.exit()
+	};
+
+	initialize_logger(&args.flag_log);
+
+	match execute(args) {
 		Ok(_) => {
 			println!("whisper-cli terminated");
 			process::exit(1);
@@ -219,14 +226,15 @@ fn main() {
 	}
 }
 
-fn execute<S, I>(command: I) -> Result<(), Error> where I: IntoIterator<Item=S>, S: AsRef<str> {
+fn parse_args<S, I>(command: I) -> Result<Args, docopt::Error> where I: IntoIterator<Item=S>, S: AsRef<str> {
+	Docopt::new(USAGE)
+		.and_then(|d| d.argv(command).deserialize())
+}
 
-	// Parse arguments
-	let args: Args = Docopt::new(USAGE).and_then(|d| d.argv(command).deserialize())?;
+fn execute(args: Args) -> Result<(), Error> {
 	let pool_size = args.flag_whisper_pool_size * POOL_UNIT;
 	let rpc_url = format!("{}:{}", args.flag_rpc_address, args.flag_rpc_port);
 
-	initialize_logger(args.flag_log);
 	info!(target: "whisper-cli", "start");
 
 	// Filter manager that will dispatch `decryption tasks`
@@ -290,15 +298,16 @@ fn execute<S, I>(command: I) -> Result<(), Error> where I: IntoIterator<Item=S>,
 	Ok(())
 }
 
-fn initialize_logger(log_level: String) {
+fn initialize_logger(log_level: &String) {
 	env_logger::Builder::from_env(env_logger::Env::default())
-		.parse(&log_level)
+		.parse(log_level)
 		.init();
 }
 
 #[cfg(test)]
 mod tests {
 	use super::execute;
+	use parse_args;
 
 	#[test]
 	fn invalid_argument() {
@@ -307,7 +316,8 @@ mod tests {
 			.map(Into::into)
 			.collect::<Vec<String>>();
 
-		assert!(execute(command).is_err());
+
+		assert!(parse_args(command).is_err());
 	}
 
 	#[test]
@@ -318,7 +328,7 @@ mod tests {
 			.map(Into::into)
 			.collect::<Vec<String>>();
 
-		assert!(execute(command).is_err());
+		assert!(execute(parse_args(command).unwrap()).is_err());
 	}
 
 	#[test]
@@ -328,7 +338,7 @@ mod tests {
 			.map(Into::into)
 			.collect::<Vec<String>>();
 
-		assert!(execute(command).is_err());
+		assert!(execute(parse_args(command).unwrap()).is_err());
 	}
 
 	#[test]
@@ -346,7 +356,7 @@ mod tests {
 			.map(Into::into)
 			.collect::<Vec<String>>();
 
-		assert!(execute(command_pool_size_too_low).is_err());
-		assert!(execute(command_pool_size_too_high).is_err());
+		assert!(execute(parse_args(command_pool_size_too_low).unwrap()).is_err());
+		assert!(execute(parse_args(command_pool_size_too_high).unwrap()).is_err());
 	}
 }
