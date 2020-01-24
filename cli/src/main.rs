@@ -340,7 +340,6 @@ mod tests {
 	}
 
 	#[test]
-	#[ignore]
 	fn privileged_port() {
 		let command = vec!["whisper", "--port=3"]
 			.into_iter()
