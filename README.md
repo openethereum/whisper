@@ -2,6 +2,9 @@
 
 Implementation of Whisper based on the Whisper-v2 PoC.
 
+### Deprecated
+This project is no longer actively maintained.
+
 ### Usage
 
 ```
