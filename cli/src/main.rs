@@ -138,7 +138,6 @@ impl RpcFactory {
 
 #[derive(Debug)]
 enum Error {
-	Docopt(docopt::Error),
 	Io(io::Error),
 	JsonRpc(jsonrpc_core::Error),
 	Network(net::Error),
@@ -156,12 +155,6 @@ impl From<std::net::AddrParseError> for Error {
 impl From<net::Error> for Error {
 	fn from(err: net::Error) -> Self {
 		Error::Network(err)
-	}
-}
-
-impl From<docopt::Error> for Error {
-	fn from(err: docopt::Error) -> Self {
-		Error::Docopt(err)
 	}
 }
 
@@ -193,7 +186,6 @@ impl fmt::Display for Error {
 	fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
 		match *self {
 			Error::SockAddr(ref e) => write!(f, "{}", e),
-			Error::Docopt(ref e) => write!(f, "{}", e),
 			Error::Io(ref e) => write!(f, "{}", e),
 			Error::JsonRpc(ref e) => write!(f, "{:?}", e),
 			Error::Network(ref e) => write!(f, "{}", e),
@@ -206,12 +198,18 @@ impl fmt::Display for Error {
 fn main() {
 	panic_hook::set_abort();
 
-	match execute(env::args()) {
+	let args = match parse_args(env::args()) {
+		Ok(args) => args,
+		Err(e) => e.exit()
+	};
+
+	initialize_logger(&args.flag_log);
+
+	match execute(args) {
 		Ok(_) => {
 			println!("whisper-cli terminated");
 			process::exit(1);
 		},
-		Err(Error::Docopt(ref e)) => e.exit(),
 		Err(err) => {
 			println!("{}", err);
 			process::exit(1);
@@ -219,14 +217,15 @@ fn main() {
 	}
 }
 
-fn execute<S, I>(command: I) -> Result<(), Error> where I: IntoIterator<Item=S>, S: AsRef<str> {
+fn parse_args<S, I>(command: I) -> Result<Args, docopt::Error> where I: IntoIterator<Item=S>, S: AsRef<str> {
+	Docopt::new(USAGE)
+		.and_then(|d| d.argv(command).deserialize())
+}
 
-	// Parse arguments
-	let args: Args = Docopt::new(USAGE).and_then(|d| d.argv(command).deserialize())?;
+fn execute(args: Args) -> Result<(), Error> {
 	let pool_size = args.flag_whisper_pool_size * POOL_UNIT;
 	let rpc_url = format!("{}:{}", args.flag_rpc_address, args.flag_rpc_port);
 
-	initialize_logger(args.flag_log);
 	info!(target: "whisper-cli", "start");
 
 	// Filter manager that will dispatch `decryption tasks`
@@ -290,15 +289,16 @@ fn execute<S, I>(command: I) -> Result<(), Error> where I: IntoIterator<Item=S>,
 	Ok(())
 }
 
-fn initialize_logger(log_level: String) {
+fn initialize_logger(log_level: &String) {
 	env_logger::Builder::from_env(env_logger::Env::default())
-		.parse(&log_level)
+		.parse(log_level)
 		.init();
 }
 
 #[cfg(test)]
 mod tests {
 	use super::execute;
+	use parse_args;
 
 	#[test]
 	fn invalid_argument() {
@@ -307,28 +307,8 @@ mod tests {
 			.map(Into::into)
 			.collect::<Vec<String>>();
 
-		assert!(execute(command).is_err());
-	}
 
-	#[test]
-	#[ignore]
-	fn privileged_port() {
-		let command = vec!["whisper", "--port=3"]
-			.into_iter()
-			.map(Into::into)
-			.collect::<Vec<String>>();
-
-		assert!(execute(command).is_err());
-	}
-
-	#[test]
-	fn invalid_ip_address() {
-		let command = vec!["whisper", "--address=x.x.x.x"]
-			.into_iter()
-			.map(Into::into)
-			.collect::<Vec<String>>();
-
-		assert!(execute(command).is_err());
+		assert!(parse_args(command).is_err());
 	}
 
 	#[test]
@@ -346,7 +326,27 @@ mod tests {
 			.map(Into::into)
 			.collect::<Vec<String>>();
 
-		assert!(execute(command_pool_size_too_low).is_err());
-		assert!(execute(command_pool_size_too_high).is_err());
+		assert!(parse_args(command_pool_size_too_low).is_err());
+		assert!(parse_args(command_pool_size_too_high).is_err());
+	}
+
+	#[test]
+	fn privileged_port() {
+		let command = vec!["whisper", "--port=3"]
+			.into_iter()
+			.map(Into::into)
+			.collect::<Vec<String>>();
+
+		assert!(execute(parse_args(command).unwrap()).is_err());
+	}
+
+	#[test]
+	fn invalid_ip_address() {
+		let command = vec!["whisper", "--address=x.x.x.x"]
+			.into_iter()
+			.map(Into::into)
+			.collect::<Vec<String>>();
+
+		assert!(execute(parse_args(command).unwrap()).is_err());
 	}
 }
