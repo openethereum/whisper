@@ -52,10 +52,10 @@ bitflags! {
 
 // number of bytes of padding length (in the range 0..4)
 fn padding_length_bytes(flags: Flags) -> usize {
-	match (flags & FLAG_PAD_LEN_HIGH, flags & FLAG_PAD_LEN_LOW) {
-		(FLAG_PAD_LEN_HIGH, FLAG_PAD_LEN_LOW) => 3,
-		(FLAG_PAD_LEN_HIGH, _) => 2,
-		(_, FLAG_PAD_LEN_LOW) => 1,
+	match (flags & Flags::FLAG_PAD_LEN_HIGH, flags & Flags::FLAG_PAD_LEN_LOW) {
+		(Flags::FLAG_PAD_LEN_HIGH, Flags::FLAG_PAD_LEN_LOW) => 3,
+		(Flags::FLAG_PAD_LEN_HIGH, _) => 2,
+		(_, Flags::FLAG_PAD_LEN_LOW) => 1,
 		(_, _) => 0,
 	}
 }
@@ -136,7 +136,7 @@ pub fn encode(params: EncodeParams) -> Result<Vec<u8>, &'static str> {
 
 		if let Some(ref sig) = signature {
 			plaintext_size += sig.len();
-			flags |= FLAG_SIGNED;
+			flags |= Flags::FLAG_SIGNED;
 		}
 
 		(flags, plaintext_size)
@@ -202,7 +202,7 @@ pub fn decode(payload: &[u8]) -> Result<Decoded, &'static str> {
 			None
 		};
 
-		let signature = if flags & FLAG_SIGNED == FLAG_SIGNED {
+		let signature = if flags & Flags::FLAG_SIGNED == Flags::FLAG_SIGNED {
 			let slice = next_slice(SIGNATURE_LEN)?;
 			let mut arr = [0; SIGNATURE_LEN];
 
@@ -252,9 +252,9 @@ mod tests {
 	fn padding_len_bytes_sanity() {
 		const U24_MAX: usize = (1 << 24) - 1;
 
-		assert_eq!(padding_length_bytes(FLAG_PAD_LEN_HIGH | FLAG_PAD_LEN_LOW), 3);
-		assert_eq!(padding_length_bytes(FLAG_PAD_LEN_HIGH), 2);
-		assert_eq!(padding_length_bytes(FLAG_PAD_LEN_LOW), 1);
+		assert_eq!(padding_length_bytes(Flags::FLAG_PAD_LEN_HIGH | Flags::FLAG_PAD_LEN_LOW), 3);
+		assert_eq!(padding_length_bytes(Flags::FLAG_PAD_LEN_HIGH), 2);
+		assert_eq!(padding_length_bytes(Flags::FLAG_PAD_LEN_LOW), 1);
 		assert_eq!(padding_length_bytes(Flags::empty()), 0);
 
 		assert!(num_padding_length_bytes(u32::max_value() as _).is_none());
